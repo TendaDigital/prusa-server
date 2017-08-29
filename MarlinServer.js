@@ -12,25 +12,23 @@ module.exports = class MarlinServer {
 
     // Ready promise indicating reception of `start` string
     this._ready = new Defered()
-
-    // If port provided, immediatelly tries to connect
-    // if (this.options.port) {
-      // this.connect(this.options.port)
-    // }
   }
 
   async connect(serialPort) {
     // Defaults to options.port
     serialPort = serialPort || this.options.port || null
 
+    // Is it connecting/connected? Return last promise
     if (this._connect) {
       return await this._connect
     }
 
+    // Must have a serialPort to seek
     if (!serialPort) {
       throw new Error('No serial port name or pattern provided')
     }
 
+    // If serialPort is a string, use it as a object {comName: String}
     if (_.isString(serialPort))
       serialPort = {comName: serialPort}
     else
@@ -40,22 +38,27 @@ module.exports = class MarlinServer {
     let portList = await SerialPort.list()
     let portProp = _.find(portList, serialPort)
 
-    // Reject if 
+    // If port was not found, reject promise
     if (!portProp) {
       reject('Port not found: ' + JSON.stringify(serialPort))
     }
     
+    // Create a new re-usable Promise that will wait for connection
     this._connect = new Promise(async (resolve, reject) => {
       try {
-        console.log('Connecting to', portProp.comName)
         // Open Serial Port
         this.port = new SerialPort(portProp.comName, { baudRate: 115200 })
 
         // Bufferize Line and use as dataReceived
         let lineBuffer = new Readline({ delimiter: '\n' })
+
+        // Proxy all data received by serial port to the line Buffer
         this.port.pipe(lineBuffer)
+
+        // Once there is data in the line Buffer, delegate to dataReceived
         lineBuffer.on('data', (data) => this.dataReceived(data))
 
+        // Every time it opens/closes, reset the current queue
         this.port.on('open', () => this.resetQueue())
         this.port.on('close', () => this.resetQueue())
         resolve()
@@ -79,9 +82,11 @@ module.exports = class MarlinServer {
   }
 
   dataReceived(data) {
+    // Skip empty data packets
     if (!data)
       return
 
+    // Debug to console if debug flag is set
     if (this.options.debug)
       console.log('<', data)
 
@@ -90,6 +95,7 @@ module.exports = class MarlinServer {
 
     // Check for start packet
     if (data.startsWith('start')) {
+      this.resetQueue()
       return this._ready.resolve()
     }
 
@@ -97,8 +103,6 @@ module.exports = class MarlinServer {
     if (!data.startsWith('ok')) {
       return
     }
-    
-    // console.log('end: ', data)
 
     let promise = this.promiseQueue.shift()
   
@@ -109,21 +113,18 @@ module.exports = class MarlinServer {
   }
 
   execute(command) {
-    console.log('>', command)
+    if (this.options.debug)
+      console.log('>', command)
+
+    // Combine with nl and cr
     command += '\n\r'
+
+    // Write to serial port
     this.port.write(command)
+
+    // Return a new promise and pushes it to the queue
     let promise = new Promise((resolve, reject) => {
-      let queued = {resolve, reject}
-      this.promiseQueue.push(queued)
-
-      // Timeout command
-      // setTimeout(() => {
-        // Remove from queue
-        // _.pull(this.promiseQueue, queued)
-
-        // Reject
-        // reject('Timeout action')
-      // }, 10000)
+      this.promiseQueue.push({resolve, reject})
     })
 
     return promise
