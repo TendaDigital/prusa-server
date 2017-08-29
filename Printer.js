@@ -20,8 +20,10 @@ module.exports = class Printer {
     await this.channel.execute(gcode)
   }
 
-  async home({X, Y, Z} = {}){
-    await this.channel.execute('G28 X')
+  async home(axes){
+    axes = _.intersection(axes, ['X', 'Y', 'Z'])
+    let cmd = 'G28 ' + axes.join(' ')
+    console.log(cmd)
+    // await this.channel.execute(cmd)
   }
-
 }
