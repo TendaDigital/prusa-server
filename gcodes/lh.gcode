@@ -11,13 +11,10 @@
 
 M115 U3.0.12 ; tell printer latest fw version
 M83  ; extruder relative mode
-M104 S200 ; set extruder temp
-M140 S55 ; set bed temp
-M190 S55 ; wait for bed temp
-M109 S200 ; wait for extruder temp
+G1 Z0.150 F9000.000
 G1 Y-3.0 F1000.0 ; go outside pritn area
-G1 X60.0 E9.0  F1000.0 ; intro line
-G1 X100.0 E12.5  F1000.0 ; intro line
+G1 X25.0 E0.0  F4000.0 ; intro line
+G1 Y20.0 E6.0  F1000.0 ; intro line
 ; Filament gcode
 
 G21 ; set units to millimeters

@@ -12,6 +12,10 @@ module.exports = class Printer {
     this.channel = new MarlinServer(options)
   }
 
+  get name () {
+    return this.options.name || this.channel.name
+  }
+
   // Resolves promise once connected
   ready() {
     return this.channel.ready()
@@ -26,9 +30,12 @@ module.exports = class Printer {
     gcode = gcode.replace(/\s*;.*/g, '').trim()
 
     if (gcode.length <= 1) {
-      console.log('!', 'skip command:', original)
+      if (this.options.debug)
+        console.log('!', 'skip command:', original)
       return
     }
+
+    this.gcode = gcode
 
     await this.channel.execute(gcode)
   }
@@ -43,6 +50,10 @@ module.exports = class Printer {
     let file = await fsReadFile(path)
     let commands = file.toString().split('\n')
     await this.commands(commands)
+  }
+
+  async display(string) {
+    await this.command(`M117 ${string}`)
   }
 
   async homeAll() { 

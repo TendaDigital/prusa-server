@@ -1,0 +1,169 @@
+const fs = require('fs')
+const path = require('path')
+const chalk = require('chalk')
+const moment = require('moment')
+
+const Defered = require('./Defered')
+const GcodeRunner = require('./GcodeRunner')
+
+module.exports = class PrinterWorker {
+
+  constructor(printer, opts) {
+    this.partCount = 0
+    this.printer = printer
+    this.running = null
+    this.logFile = path.join(__dirname, 'logs', printer.name + '.txt')
+    this.gcodes = {
+      heat:     new GcodeRunner(printer, this.filePath('heat'), opts),
+      heatWait: new GcodeRunner(printer, this.filePath('heatWait'), opts),
+      home:     new GcodeRunner(printer, this.filePath('home'), opts),
+      print:    new GcodeRunner(printer, this.filePath('lh'), opts),
+      eject:    new GcodeRunner(printer, this.filePath('eject'), opts),
+      end:      new GcodeRunner(printer, this.filePath('end'), opts),
+    }
+  }
+
+  get tag() {
+    return (' ' + this.printer.name + ' ')
+  }
+
+  // Counts one more part
+  printed(duration) {
+    this.partCount++
+    duration = Math.round(duration / 1000)
+    fs.appendFileSync(this.logFile,
+      `${new Date().toString()}: new part (${duration} s)\n`)
+  }
+
+  filePath(name) {
+    return path.join(__dirname, './gcodes', name + '.gcode')
+  }
+
+  async stop() {
+    this.running = false
+    console.log('Stopping print')
+  }
+
+  run() {
+    return this.running ? this.running : null
+  }
+
+  async start() {
+    if (this.running) {
+      return this.running
+    }
+
+    fs.appendFileSync(this.logFile, '========= Start ========')
+
+    this.running = new Promise(async (resolve, reject) => {
+      try {
+
+        // Connect and wait printer to be ready
+        console.log(chalk.dim(this.tag), 'starting')
+        await this.printer.connect()
+        console.log(chalk.dim(this.tag), 'Connected')
+        await this.printer.ready()
+        console.log(chalk.dim(this.tag), 'Ready')
+
+        // Start heating
+        this.assertRunning()
+        await this.execGcode(this.gcodes.heat)
+        
+        // Go home and level bed
+        this.assertRunning()
+        await this.execGcode(this.gcodes.home)
+
+        // Make sure heat is ok before starting
+        this.assertRunning()
+        await this.execGcode(this.gcodes.heatWait)
+
+        // Start main loop of program
+        while (this.running) {
+          // Measure total time
+          let begin = Date.now()
+
+          // Print object
+          this.assertRunning()
+          await this.execGcode(this.gcodes.print)
+          
+          // Eject object
+          this.assertRunning()
+          await this.execGcode(this.gcodes.eject)
+
+          // Compute duration
+          let duration = Date.now() - begin
+          // Count object
+          this.printed(duration)
+        }
+
+        await this.execGcode(this.gcodes.end)
+
+        console.log(this.tag, 'Finished')
+        resolve('Finished printing')
+      } catch (e) {
+        reject(e)
+      }
+    })
+  }
+
+  assertRunning() {
+    if (!this.running)
+      throw new Error('Worker stopped')
+  }
+
+  async execGcode(gcode) {
+    let name = chalk.yellow.bold(gcode.name)
+    let begin = Date.now()
+    let draft = console.draft('...')
+
+    let lastPrint = 0
+
+    await gcode.reset()
+    // Run until is not stopped/paused
+    do {
+      // Save promise
+      let promise = gcode.next()
+      // Log command
+      draft(
+        chalk.bgYellow.black(this.tag), 
+        name, 
+        chalk.white(gcode.percentage() + '%'),
+        chalk.dim('command:'), 
+        chalk.white(this.printer.gcode)
+      )
+
+      // Print status on printer every 5 seconds
+      if (Date.now() > lastPrint + 5000) {
+        lastPrint = Date.now()
+        await this.printer.display(
+          `#${this.partCount} > ${gcode.name} ${gcode.percentage()}%`)
+      }
+
+      // Wait command to finish
+      let shouldContinue = await promise
+      // Check if it ended
+      if (!shouldContinue) {
+        break
+      }
+    } while (this.running)
+    
+    let end = Date.now()
+    draft(
+      chalk.bgGreen.black(this.tag),
+      name,
+      chalk.white(toDuration(Date.now() - begin))
+    )
+  }
+}
+
+function toDuration(milis) {
+  let mm = moment.duration(milis)
+  let str = '' 
+  str += (mm.hours() < 10 ? '0' : '') + mm.hours()
+  str += ':'
+  str += (mm.minutes() < 10 ? '0' : '') + mm.minutes()
+  str += ':'
+  str += (mm.seconds() < 10 ? '0' : '') + mm.seconds()
+
+  return str
+}

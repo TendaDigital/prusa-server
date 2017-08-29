@@ -14,6 +14,10 @@ module.exports = class MarlinServer {
     this._ready = new Defered()
   }
 
+  get name() {
+    return this.port ? this.port.path : 'DISCONNECTED'
+  }
+
   async connect(serialPort) {
     // Defaults to options.port
     serialPort = serialPort || this.options.port || null
@@ -40,7 +44,7 @@ module.exports = class MarlinServer {
 
     // If port was not found, reject promise
     if (!portProp) {
-      reject('Port not found: ' + JSON.stringify(serialPort))
+      throw new Error('Port not found: ' + JSON.stringify(serialPort))
     }
     
     // Create a new re-usable Promise that will wait for connection

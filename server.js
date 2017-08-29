@@ -16,6 +16,7 @@ async function main() {
 
   let printer = new Printer({
     debug: true,
+    name: 'PRINTER 0'
     port: {serialNumber: 'CZPX1517X003XK17121'},
   })
   console.log('connecting...')
