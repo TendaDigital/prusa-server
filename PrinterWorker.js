@@ -17,7 +17,8 @@ module.exports = class PrinterWorker {
       heat:     new GcodeRunner(printer, this.filePath('heat'), opts),
       heatWait: new GcodeRunner(printer, this.filePath('heatWait'), opts),
       home:     new GcodeRunner(printer, this.filePath('home'), opts),
-      print:    new GcodeRunner(printer, this.filePath('lh'), opts),
+      print:    new GcodeRunner(printer, this.filePath('lh2'), opts),
+      line:     new GcodeRunner(printer, this.filePath('line'), opts),
       eject:    new GcodeRunner(printer, this.filePath('eject'), opts),
       end:      new GcodeRunner(printer, this.filePath('end'), opts),
     }
@@ -53,7 +54,7 @@ module.exports = class PrinterWorker {
       return this.running
     }
 
-    fs.appendFileSync(this.logFile, '========= Start ========')
+    fs.appendFileSync(this.logFile, '========= Start ========\n')
 
     this.running = new Promise(async (resolve, reject) => {
       try {
@@ -81,6 +82,10 @@ module.exports = class PrinterWorker {
         while (this.running) {
           // Measure total time
           let begin = Date.now()
+
+          // Print object
+          this.assertRunning()
+          await this.execGcode(this.gcodes.line)
 
           // Print object
           this.assertRunning()

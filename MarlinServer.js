@@ -91,8 +91,10 @@ module.exports = class MarlinServer {
       return
 
     // Debug to console if debug flag is set
-    if (this.options.debug)
+    if (this.options.debug) {
+      console.log('<', new Buffer(data))
       console.log('<', data)
+    }
 
     // Make sure it's a string
     data = data.toString()
@@ -107,7 +109,6 @@ module.exports = class MarlinServer {
     if (!data.startsWith('ok')) {
       return
     }
-
     let promise = this.promiseQueue.shift()
   
     if (!promise)
