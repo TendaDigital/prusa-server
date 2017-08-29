@@ -23,7 +23,7 @@ async function main() {
 
   console.log('start home')
   await printer.home()
-  await printer.home()
+  await printer.command('doasp')
   console.log('home ok')
 
 }

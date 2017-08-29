@@ -7,16 +7,20 @@ module.exports = class Printer {
     this.channel = new MarlinServer(options)
   }
 
-  async connect() {
-    return this.channel.connect()
-  }
-
   // Resolves promise once connected
   ready() {
     return this.channel.ready()
   }
 
-  async home(){
+  async connect() {
+    return this.channel.connect()
+  }
+
+  async command(gcode) {
+    await this.channel.execute(gcode)
+  }
+
+  async home({X, Y, Z} = {}){
     await this.channel.execute('G28 X')
   }
 
