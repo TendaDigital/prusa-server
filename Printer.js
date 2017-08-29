@@ -21,9 +21,16 @@ module.exports = class Printer {
   }
 
   async home(axes){
-    axes = _.intersection(axes, ['X', 'Y', 'Z'])
+    axes = _.intersection(axes, ['X', 'Y', 'Z', 'W'])
     let cmd = 'G28 ' + axes.join(' ')
-    console.log(cmd)
-    // await this.channel.execute(cmd)
+    await this.channel.execute(cmd)
+  }
+
+  async homeX(){ await this.home(['X']) }
+  async homeY(){ await this.home(['Y']) }
+  async homeZ(){ await this.home(['Z']) }
+  
+  async meshBedLevel(){ 
+    await this.command('G80')
   }
 }
