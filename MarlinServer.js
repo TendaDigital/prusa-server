@@ -1,25 +1,74 @@
 const _ = require('lodash')
 const Readline = require('serialport').parsers.Readline
+const SerialPort = require('serialport')
+
+const Defered = require('./Defered')
 
 module.exports = class MarlinServer {
-  constructor(serialPort, options) {
-    if (!serialPort) {
-      throw new Error('No serial port name provided')
+  constructor(options) {
+    this.options = options || {}
+    
+    this.promiseQueue = []
+
+    // Ready promise indicating reception of `start` string
+    this._ready = new Defered()
+
+    // If port provided, immediatelly tries to connect
+    // if (this.options.port) {
+      // this.connect(this.options.port)
+    // }
+  }
+
+  async connect(serialPort) {
+    // Defaults to options.port
+    serialPort = serialPort || this.options.port || null
+
+    if (this._connect) {
+      return await this._connect
     }
 
-    this.options = options || {}
-    this.promiseQueue = []
-    this.serialPort = serialPort
+    if (!serialPort) {
+      throw new Error('No serial port name or pattern provided')
+    }
 
-    // Bufferize Line and use as dataReceived
-    let lineBuffer = new Readline({
-      delimiter: '\r\n',
+    if (_.isString(serialPort))
+      serialPort = {comName: serialPort}
+    else
+      serialPort = serialPort
+
+    // Try to find port
+    let portList = await SerialPort.list()
+    let portProp = _.find(portList, serialPort)
+
+    // Reject if 
+    if (!portProp) {
+      reject('Port not found: ' + JSON.stringify(serialPort))
+    }
+    
+    this._connect = new Promise(async (resolve, reject) => {
+      try {
+        console.log('Connecting to', portProp.comName)
+        // Open Serial Port
+        this.port = new SerialPort(portProp.comName, { baudRate: 115200 })
+
+        // Bufferize Line and use as dataReceived
+        let lineBuffer = new Readline({ delimiter: '\n' })
+        this.port.pipe(lineBuffer)
+        lineBuffer.on('data', (data) => this.dataReceived(data))
+
+        this.port.on('open', () => this.resetQueue())
+        this.port.on('close', () => this.resetQueue())
+        resolve()
+      } catch (e) {
+        reject(e)
+      }
     })
-    serialPort.pipe(lineBuffer)
-    lineBuffer.on('data', (data) => this.dataReceived(data))
 
-    serialPort.on('open', () => this.resetQueue())
-    serialPort.on('close', () => this.resetQueue())
+    await this._connect
+  }
+
+  ready() {
+    return this._ready.promise
   }
 
   resetQueue() {
@@ -34,14 +83,18 @@ module.exports = class MarlinServer {
       return
 
     if (this.options.debug)
-      console.log('>', data)
+      console.log('<', data)
 
     // Make sure it's a string
     data = data.toString()
 
+    // Check for start packet
+    if (data.startsWith('start')) {
+      return this._ready.resolve()
+    }
+
     // Only packets starting with `:` are responses
     if (!data.startsWith('ok')) {
-      // console.log('>', data)
       return
     }
     
@@ -56,19 +109,21 @@ module.exports = class MarlinServer {
   }
 
   execute(command) {
-    this.serialPort.write(command)
+    console.log('>', command)
+    command += '\n\r'
+    this.port.write(command)
     let promise = new Promise((resolve, reject) => {
       let queued = {resolve, reject}
       this.promiseQueue.push(queued)
 
       // Timeout command
-      setTimeout(() => {
+      // setTimeout(() => {
         // Remove from queue
-        _.pull(this.promiseQueue, queued)
+        // _.pull(this.promiseQueue, queued)
 
         // Reject
-        reject('Timeout action')
-      }, 10000)
+        // reject('Timeout action')
+      // }, 10000)
     })
 
     return promise

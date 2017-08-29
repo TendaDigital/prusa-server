@@ -1,30 +1,23 @@
-const SerialPort = require('serialport')
+const _ = require('lodash')
 const MarlinServer = require('./MarlinServer')
 
 module.exports = class Printer {
-  constructor (comPort) {
-    // Ready promise
-    this.promiseReady = new Promise(this.initSerialPort)
+  constructor (options) {
+    this.options = options
+    this.channel = new MarlinServer(options)
   }
 
-  async initSerialPort(resolve, reject) {
-    let ports = await SerialPort.list()
-    let port =
-
-    this.port.on('open', () => resolve())
-  }
-
-  async initChannel() {
-    this.channel = new SerialChannel(this.port)
+  async connect() {
+    return this.channel.connect()
   }
 
   // Resolves promise once connected
   ready() {
-    return this.promiseReady
+    return this.channel.ready()
   }
 
   async home(){
-    await this.channel.execute('G23 X')
+    await this.channel.execute('G28 X')
   }
 
 }

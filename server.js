@@ -5,15 +5,26 @@ const Printer = require('./Printer')
 
 async function main() {
 
-  let ports = await SerialPort.list()
-  console.log(ports)
+  // let ports = await SerialPort.list()
+  // console.log(ports)
 
 
-  let printer = new Printer()
+  let printer = new Printer({
+    debug: true,
+    port: {serialNumber: 'CZPX1517X003XK17121'},
+  })
+  console.log('connecting...')
+  await printer.connect()
+  console.log('connected')
 
-  console.log('waiting printer...')
+  console.log('waiting to be ready...')
   await printer.ready()
-  console.log('printer ok')
+  console.log('printer ready')
+
+  console.log('start home')
+  await printer.home()
+  await printer.home()
+  console.log('home ok')
 
 }
 
@@ -27,3 +38,9 @@ async function main() {
     process.exit(1)
   }
 })()
+
+process.on('unhandledRejection', (e) => {
+  console.error('Unhandled Rejection')
+  console.error(e.stack)
+  process.exit(1)
+})
