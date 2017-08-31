@@ -14,13 +14,13 @@ module.exports = class PrinterWorker {
     this.running = null
     this.logFile = path.join(__dirname, 'logs', printer.name + '.txt')
     this.gcodes = {
-      heat:     new GcodeRunner(printer, this.filePath('heat'), opts),
-      heatWait: new GcodeRunner(printer, this.filePath('heatWait'), opts),
-      home:     new GcodeRunner(printer, this.filePath('home'), opts),
-      print:    new GcodeRunner(printer, this.filePath('lh2'), opts),
-      line:     new GcodeRunner(printer, this.filePath('line'), opts),
-      eject:    new GcodeRunner(printer, this.filePath('eject'), opts),
-      end:      new GcodeRunner(printer, this.filePath('end'), opts),
+      heat:     new GcodeRunner(this.filePath('heat'), opts),
+      heatWait: new GcodeRunner(this.filePath('heatWait'), opts),
+      home:     new GcodeRunner(this.filePath('home'), opts),
+      print:    new GcodeRunner(this.filePath('lh2'), opts),
+      line:     new GcodeRunner(this.filePath('line'), opts),
+      eject:    new GcodeRunner(this.filePath('eject'), opts),
+      end:      new GcodeRunner(this.filePath('end'), opts),
     }
   }
 
@@ -123,11 +123,17 @@ module.exports = class PrinterWorker {
 
     let lastPrint = 0
 
-    await gcode.reset()
+    await gcode.load()
+
     // Run until is not stopped/paused
     do {
-      // Save promise
-      let promise = gcode.next()
+      // Load next command
+      let command = gcode.next()
+
+      if (command == null) {
+        break
+      }
+
       // Log command
       draft(
         chalk.bgYellow.black(this.tag), 
@@ -145,11 +151,11 @@ module.exports = class PrinterWorker {
       }
 
       // Wait command to finish
-      let shouldContinue = await promise
-      // Check if it ended
-      if (!shouldContinue) {
-        break
-      }
+      await this.printer.command(command)
+      // // Check if it ended
+      // if (!shouldContinue) {
+      //   break
+      // }
     } while (this.running)
     
     let end = Date.now()

@@ -1,4 +1,5 @@
 const _ = require('lodash')
+const chalk = require('chalk')
 const Readline = require('serialport').parsers.Readline
 const SerialPort = require('serialport')
 
@@ -58,6 +59,10 @@ module.exports = class MarlinServer {
 
         // Proxy all data received by serial port to the line Buffer
         this.port.pipe(lineBuffer)
+        // this.port.on('data', (data) =>{
+        //   data = data.toString()
+        //   console.log('( ', data.replace(/\n/g, chalk.yellow('\\n')).replace(/\r/g, chalk.yellow('\\r')))
+        // })
 
         // Once there is data in the line Buffer, delegate to dataReceived
         lineBuffer.on('data', (data) => this.dataReceived(data))
@@ -122,9 +127,10 @@ module.exports = class MarlinServer {
       console.log('>', command)
 
     // Combine with nl and cr
-    command += '\n\r'
+    command += '\n'
 
     // Write to serial port
+    // console.log(') ', command.replace(/\n/g, chalk.yellow('\\n')).replace(/\r/g, chalk.yellow('\\r')))
     this.port.write(command)
 
     // Return a new promise and pushes it to the queue
