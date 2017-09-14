@@ -10,6 +10,26 @@ module.exports = class Printer {
   constructor (options) {
     this.options = options
     this.channel = new MarlinServer(options)
+    this.channel.on('data', this.parse.bind(this))
+
+    this.switch = {
+      x: false,
+      y: false,
+      z: false,
+      b: false,
+    }
+  }
+
+  parse(data) {
+    if (data.startsWith('x_min:')) {
+      this.switch.x = data.includes('TRIGGERED')
+    } else if (data.startsWith('y_min:')) {
+      this.switch.y = data.includes('TRIGGERED')
+    } else if (data.startsWith('z_min:')) {
+      this.switch.z = data.includes('TRIGGERED')
+    } else if (data.startsWith('x_max:')){
+      this.switch.b = data.includes('TRIGGERED')
+    }
   }
 
   get name () {
@@ -36,6 +56,16 @@ module.exports = class Printer {
     }
 
     this.gcode = gcode
+
+    // Special Soft cases
+    if (gcode.startsWith('SOFT:')){
+      let cmd = gcode.replace('SOFT:', '')
+      if (this.options.debug) {
+        console.log('> SOFT', cmd)
+      }
+      await this[cmd]()
+      return
+    }
 
     await this.channel.execute(gcode)
   }
@@ -71,6 +101,55 @@ module.exports = class Printer {
   async homeZ(){ await this.home(['Z']) }
   async homeW(){ await this.home(['W']) }
   
+  async softwareHome(axis) {
+    let limit = 500
+    let AXIS = axis.toUpperCase()
+    axis = axis.toLowerCase()
+
+    if (AXIS != 'X' && AXIS != 'Y' && AXIS != 'Z') {
+      throw new Error('Invalid softwareHome axis: ' + AXIS)
+    }
+    
+    await this.readSwitches()
+    if (this.switch[axis]) {
+      await this.command(`G1 ${AXIS}5`)
+    }
+
+    while(limit--) {
+      await this.readSwitches()
+      if (this.switch[axis]) {
+        break
+      }
+      this.command(`G92 ${AXIS}0.5 F9000`)
+      this.command(`G1 ${AXIS}0`)
+    }
+
+    let offset = {X: -0.1, Y: -3, Z: 0}
+    this.command(`G92 ${AXIS}${offset[AXIS]}`)
+    this.command(`G1 ${AXIS}0`)
+    this.command(`M300 S2000 P200`)
+    // this.command(`G4 S3`)
+  }
+
+  async check()
+
+  async softwareHomeY() {
+    await this.softwareHome('Y')
+  }
+
+  async softwareHomeX() {
+    await this.softwareHome('X')
+  }
+
+  async softwareHomeZ() {
+    await this.softwareHome('Z')
+  }
+
+  async readSwitches() {
+    await this.command('M119')
+    // console.log(this.switch)
+  }
+
   async meshBedLevel(){ 
     await this.command('G80')
   }

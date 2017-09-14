@@ -11,14 +11,15 @@ module.exports = class PrinterWorker {
   constructor(printer, opts) {
     this.partCount = 0
     this.printer = printer
+    this.opts = opts
     this.running = null
     this.logFile = path.join(__dirname, 'logs', printer.name + '.txt')
     this.gcodes = {
       heat:     new GcodeRunner(this.filePath('heat'), opts),
       heatWait: new GcodeRunner(this.filePath('heatWait'), opts),
       home:     new GcodeRunner(this.filePath('home'), opts),
-      print:    new GcodeRunner(this.filePath('lh2'), opts),
-      line:     new GcodeRunner(this.filePath('line'), opts),
+      print:    new GcodeRunner(this.filePath('lh'), opts),
+      start:    new GcodeRunner(this.filePath('start'), opts),
       eject:    new GcodeRunner(this.filePath('eject'), opts),
       end:      new GcodeRunner(this.filePath('end'), opts),
     }
@@ -83,9 +84,11 @@ module.exports = class PrinterWorker {
           // Measure total time
           let begin = Date.now()
 
+          this.opts.params.printOffset = (this.opts.params.printOffset) % 100
+
           // Print object
           this.assertRunning()
-          await this.execGcode(this.gcodes.line)
+          await this.execGcode(this.gcodes.start)
 
           // Print object
           this.assertRunning()

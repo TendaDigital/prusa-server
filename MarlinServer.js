@@ -2,11 +2,14 @@ const _ = require('lodash')
 const chalk = require('chalk')
 const Readline = require('serialport').parsers.Readline
 const SerialPort = require('serialport')
+const EventEmitter = require('events')
 
 const Defered = require('./Defered')
 
-module.exports = class MarlinServer {
+module.exports = class MarlinServer extends EventEmitter{
   constructor(options) {
+    super()
+
     this.options = options || {}
     
     this.promiseQueue = []
@@ -64,9 +67,8 @@ module.exports = class MarlinServer {
         //   console.log('( ', data.replace(/\n/g, chalk.yellow('\\n')).replace(/\r/g, chalk.yellow('\\r')))
         // })
 
-        // Once there is data in the line Buffer, delegate to dataReceived
-        lineBuffer.on('data', (data) => this.dataReceived(data))
-
+    // Once there is data in the line Buffer, delegate to dataReceived
+    lineBuffer.on('data', (data) => this.dataReceived(data))
         // Every time it opens/closes, reset the current queue
         this.port.on('open', () => this.resetQueue())
         this.port.on('close', () => this.resetQueue())
@@ -77,7 +79,7 @@ module.exports = class MarlinServer {
     })
 
     await this._connect
-  }
+  } 
 
   ready() {
     return this._ready.promise
@@ -97,12 +99,15 @@ module.exports = class MarlinServer {
 
     // Debug to console if debug flag is set
     if (this.options.debug) {
-      console.log('<', new Buffer(data))
+      // console.log('<', new Buffer(data))
       console.log('<', data)
     }
 
     // Make sure it's a string
     data = data.toString()
+
+    // Emit data
+    this.emit('data', data)
 
     // Check for start packet
     if (data.startsWith('start')) {
