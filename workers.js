@@ -12,9 +12,9 @@ const PRINTER_5 = {
   name: 'PRINTER 5',
   port: {serialNumber: 'CZPX2617X003XK24982'},
   params: {
-    temperatureExtruder: 200,
+    temperatureExtruder: 205,
     temperatureBed: 60,
-    babyHeight: '1.4',
+    babyHeight: '1.43',
     printOffset: 0
   }
 }

@@ -65,7 +65,7 @@ module.exports = class Printer {
       }
       await this[cmd]()
       return
-    }
+    } 
 
     await this.channel.execute(gcode)
   }
@@ -128,10 +128,31 @@ module.exports = class Printer {
     this.command(`G92 ${AXIS}${offset[AXIS]}`)
     this.command(`G1 ${AXIS}0`)
     this.command(`M300 S2000 P200`)
-    // this.command(`G4 S3`)
   }
 
-  async check()
+  async checkPrint() {
+    await this.readSwitches()
+    if (this.switch.b){
+      await this.display("Part Found 200 OK")
+    }else { 
+      await this.shutdown()
+      await this.command('M300 S2000 P2000')
+      await this.command('M300 S2000 P2000')
+      await this.command('M300 S2000 P2000')
+      await this.command('M300 S2000 P2000')
+      await this.command('M300 S2000 P2000')
+      await this.command('M300 S2000 P2000')
+      throw new Error("Part not found 404")
+    }
+  }
+
+  async shutdown(){
+    await this.command('G1 Z30 F3000.0')
+    await this.command('Z30 F3000.0')
+    await this.command('M84')
+    await this.command('M104 S0')
+    await this.command('M140 S0')
+  }
 
   async softwareHomeY() {
     await this.softwareHome('Y')
@@ -147,7 +168,6 @@ module.exports = class Printer {
 
   async readSwitches() {
     await this.command('M119')
-    // console.log(this.switch)
   }
 
   async meshBedLevel(){ 
