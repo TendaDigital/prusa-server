@@ -13,9 +13,9 @@ const PRINTER_5 = {
   port: {serialNumber: 'CZPX2617X003XK24982'},
   params: {
     temperatureExtruder: 205,
-    temperatureBed: 60,
-    babyHeight: '1.43',
-    printOffset: 0
+    temperatureBed: 50,
+    babyHeight: '0.7',
+    printOffset: 10
   }
 }
 
@@ -35,9 +35,9 @@ async function main() {
 
   let printer5 = new Printer(PRINTER_5)
   //
-  let printerWorker = new PrinterWorker(printer5, PRINTER_5)
-  await printerWorker.start()
-  await printerWorker.run()
+  let printerWorker5 = new PrinterWorker(printer5, PRINTER_5)
+  await printerWorker5.start()
+  await printerWorker5.run()
 }
 
 ;(async () => {

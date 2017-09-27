@@ -11,7 +11,6 @@ module.exports = class Printer {
     this.options = options
     this.channel = new MarlinServer(options)
     this.channel.on('data', this.parse.bind(this))
-
     this.switch = {
       x: false,
       y: false,
@@ -110,9 +109,12 @@ module.exports = class Printer {
       throw new Error('Invalid softwareHome axis: ' + AXIS)
     }
     
+    await this.command(`G4 P40`)
     await this.readSwitches()
     if (this.switch[axis]) {
       await this.command(`G1 ${AXIS}5`)
+      await this.command(`G4 P40`)
+      await this.readSwitches()
     }
 
     while(limit--) {
@@ -120,7 +122,7 @@ module.exports = class Printer {
       if (this.switch[axis]) {
         break
       }
-      this.command(`G92 ${AXIS}0.5 F9000`)
+      this.command(`G92 ${AXIS}0.5 F3000`)
       this.command(`G1 ${AXIS}0`)
     }
 
@@ -136,19 +138,18 @@ module.exports = class Printer {
       await this.display("Part Found 200 OK")
     }else { 
       await this.shutdown()
-      await this.command('M300 S2000 P2000')
-      await this.command('M300 S2000 P2000')
-      await this.command('M300 S2000 P2000')
-      await this.command('M300 S2000 P2000')
-      await this.command('M300 S2000 P2000')
-      await this.command('M300 S2000 P2000')
+      await this.command('M300 S2000 P500')
+      await this.command('M300 S0 P20')
+      await this.command('M300 S2000 P500')
+      await this.command('M300 S0 P20')
+      await this.command('M300 S2000 P500')
+      await this.command('M300 S0 P20')
       throw new Error("Part not found 404")
     }
   }
 
   async shutdown(){
     await this.command('G1 Z30 F3000.0')
-    await this.command('Z30 F3000.0')
     await this.command('M84')
     await this.command('M104 S0')
     await this.command('M140 S0')
@@ -173,4 +174,6 @@ module.exports = class Printer {
   async meshBedLevel(){ 
     await this.command('G80')
   }
+
+
 }

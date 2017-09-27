@@ -145,5 +145,4 @@ module.exports = class MarlinServer extends EventEmitter{
 
     return promise
   }
-
 }

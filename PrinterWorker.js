@@ -18,10 +18,14 @@ module.exports = class PrinterWorker {
       heat:     new GcodeRunner(this.filePath('heat'), opts),
       heatWait: new GcodeRunner(this.filePath('heatWait'), opts),
       home:     new GcodeRunner(this.filePath('home'), opts),
-      print:    new GcodeRunner(this.filePath('lh'), opts),
+      print:    new GcodeRunner(this.filePath('LedHolder'), opts),
       start:    new GcodeRunner(this.filePath('start'), opts),
       eject:    new GcodeRunner(this.filePath('eject'), opts),
       end:      new GcodeRunner(this.filePath('end'), opts),
+    }
+    this.offset = {
+      x: 0,
+      y: 0,
     }
   }
 
@@ -83,13 +87,13 @@ module.exports = class PrinterWorker {
         while (this.running) {
           // Measure total time
           let begin = Date.now()
-
-          this.opts.params.printOffset = (this.opts.params.printOffset) % 100
-
+          await this.resetOffset()
           // Print object
           this.assertRunning()
           await this.execGcode(this.gcodes.start)
 
+          await this.nextPartPosition()
+          
           // Print object
           this.assertRunning()
           await this.execGcode(this.gcodes.print)
@@ -112,6 +116,41 @@ module.exports = class PrinterWorker {
         reject(e)
       }
     })
+  }
+
+  async resetOffset(){
+    // this.opts.params.printOffset = (this.opts.params.printOffset) % 100
+    await this.printer.command(`G1 X0 Y0 F9000`)
+    await this.printer.command(`G92 X${this.offset.x} Y${this.offset.y}`)
+    await this.printer.command(`G1 X0 Y0 F9000`)
+    
+    this.offset = {
+      x: 0,
+      y: 0,
+    }
+  }
+
+  async applyOffset(offset){
+    await this.resetOffset()
+    await this.printer.command(`G1 X0 Y0 F9000`)
+    await this.printer.command(`G92 X${-offset.x} Y${-offset.y}`)
+    await this.printer.command(`G1 X0 Y0 F9000`)
+    this.offset = offset
+  }
+
+  async nextPartPosition() {
+    let x = () => {
+      let partNumber = this.partCount
+      if (partNumber <= 55) {
+        return partNumber * 4
+      }else{
+        
+      }
+
+    }
+    let y = 0
+
+    await this.applyOffset({x, y})
   }
 
   assertRunning() {
