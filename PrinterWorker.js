@@ -139,16 +139,28 @@ module.exports = class PrinterWorker {
   }
 
   async nextPartPosition() {
+    
     let x = () => {
       let partNumber = this.partCount
-      if (partNumber <= 55) {
-        return partNumber * 4
-      }else{
-        
+      if (partNumber <= 85) {
+        console.log("Changed")
+        return (partNumber * 3)
       }
-
+      else {
+        console.log("Carry All")
+        return 0
+      }
     }
-    let y = 0
+    let y = () => { 
+      let partNumber = this.partCount
+      if (partNumber <= 85) {
+        return 0
+      }
+      else {
+        console.log("Carry All")
+        return 10
+      }
+    }
 
     await this.applyOffset({x, y})
   }
