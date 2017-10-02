@@ -10,11 +10,11 @@ G1 X13.0 Y-2.0      ; Go to mesh bed probing location
 SOFT:softwareHomeZ  ; Home Z
 
 G30                 ; Home Z (fine)
-G92 Z0.73                 ; Offset babystep
+G92 Z{babyHeight}                 ; Offset babystep
 
 ;G1 E3.500 F2100.000
 ;G1 X8.0 F2000.0
 ;G1 Y20.0 E5.0  F1000.0 ; intro line
 ;G1 Y40.0 E8.0  F1000.0 ; intro line
-G1 E10.0 F2000
-G4 P100
+G1 E10.8 F2000
+G4

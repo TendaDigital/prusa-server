@@ -67,11 +67,14 @@ module.exports = class MarlinServer extends EventEmitter{
         //   console.log('( ', data.replace(/\n/g, chalk.yellow('\\n')).replace(/\r/g, chalk.yellow('\\r')))
         // })
 
-    // Once there is data in the line Buffer, delegate to dataReceived
-    lineBuffer.on('data', (data) => this.dataReceived(data))
+        // Once there is data in the line Buffer, delegate to dataReceived
+        lineBuffer.on('data', (data) => this.dataReceived(data))
         // Every time it opens/closes, reset the current queue
         this.port.on('open', () => this.resetQueue())
         this.port.on('close', () => this.resetQueue())
+        this.port.on('error', (err) => {
+          reject(err)
+        })
         resolve()
       } catch (e) {
         reject(e)

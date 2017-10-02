@@ -27,6 +27,8 @@ module.exports = class PrinterWorker {
       x: 0,
       y: 0,
     }
+    this.maxOffsetX = 180
+    this.maxOffsetY = 140
   }
 
   get tag() {
@@ -39,6 +41,10 @@ module.exports = class PrinterWorker {
     duration = Math.round(duration / 1000)
     fs.appendFileSync(this.logFile,
       `${new Date().toString()}: new part (${duration} s)\n`)
+  }
+
+  log(str) {
+    fs.appendFileSync(this.logFile, str + '\n')
   }
 
   filePath(name) {
@@ -120,9 +126,9 @@ module.exports = class PrinterWorker {
 
   async resetOffset(){
     // this.opts.params.printOffset = (this.opts.params.printOffset) % 100
-    await this.printer.command(`G1 X0 Y0 F9000`)
+    await this.printer.command(`G1 X0 Y0 F6000`)
     await this.printer.command(`G92 X${this.offset.x} Y${this.offset.y}`)
-    await this.printer.command(`G1 X0 Y0 F9000`)
+    await this.printer.command(`G1 X0 Y0 F6000`)
     
     this.offset = {
       x: 0,
@@ -132,36 +138,42 @@ module.exports = class PrinterWorker {
 
   async applyOffset(offset){
     await this.resetOffset()
-    await this.printer.command(`G1 X0 Y0 F9000`)
+    await this.printer.command(`G1 X0 Y0 F6000`)
     await this.printer.command(`G92 X${-offset.x} Y${-offset.y}`)
-    await this.printer.command(`G1 X0 Y0 F9000`)
+    await this.printer.command(`G1 X0 Y0 F6000`)
     this.offset = offset
   }
 
   async nextPartPosition() {
-    
-    let x = () => {
-      let partNumber = this.partCount
-      if (partNumber <= 85) {
-        console.log("Changed")
-        return (partNumber * 3)
-      }
-      else {
-        console.log("Carry All")
-        return 0
-      }
+
+    let partNumber = this.partCount 
+    let spaceX = 3
+    let spaceY = 10
+    let maxColum = Math.ceil(this.maxOffsetX/spaceX)
+    let maxLine = Math.ceil(this.maxOffsetY/spaceY)
+    let x = 0
+    let y = 0
+    let batch = (maxColum*maxLine)
+    if (partNumber >= batch) {
+      partNumber = partNumber - (Math.floor(partNumber/batch)*batch) 
     }
-    let y = () => { 
-      let partNumber = this.partCount
-      if (partNumber <= 85) {
-        return 0
-      }
-      else {
-        console.log("Carry All")
-        return 10
-      }
+    let partY = Math.floor(partNumber/maxColum)
+    let partX = partNumber - (partY * maxColum)
+
+    console.log("Batch:", batch)
+    console.log("Part Number:", partNumber)
+    console.log("PARTX:",partX)
+    console.log("PARTY:",partY)
+
+    if(partX <= maxColum){
+      x = partX * spaceX
+      y = partY * spaceY
+    }else{
+      partY++
     }
 
+    console.log("OffSet X:",x)
+    console.log("OffSet Y:",y)
     await this.applyOffset({x, y})
   }
 

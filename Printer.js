@@ -3,8 +3,11 @@ const fs = require('fs')
 const {promisify} = require('util');
 
 const fsReadFile = promisify(fs.readFile)
-
+const Bot = require('./Bot')
 const MarlinServer = require('./MarlinServer')
+
+const sleep = ms => new Promise(res => setTimeout(res, ms))
+
 
 module.exports = class Printer {
   constructor (options) {
@@ -40,7 +43,7 @@ module.exports = class Printer {
     return this.channel.ready()
   }
 
-  async connect() {
+  connect() {
     return this.channel.connect()
   }
 
@@ -100,6 +103,17 @@ module.exports = class Printer {
   async homeZ(){ await this.home(['Z']) }
   async homeW(){ await this.home(['W']) }
   
+  async waitForButtonPress(){
+    this.display("Press Extrud Button")
+    
+    do {
+      await this.readSwitches()
+      await sleep(50)
+    } while(!this.switch.b)
+
+    this.display("Ok! Beginning")
+  }
+  
   async softwareHome(axis) {
     let limit = 500
     let AXIS = axis.toUpperCase()
@@ -136,7 +150,8 @@ module.exports = class Printer {
     await this.readSwitches()
     if (this.switch.b){
       await this.display("Part Found 200 OK")
-    }else { 
+    }else {
+      Bot.run(this.options.name)
       await this.shutdown()
       await this.command('M300 S2000 P500')
       await this.command('M300 S0 P20')
@@ -144,7 +159,7 @@ module.exports = class Printer {
       await this.command('M300 S0 P20')
       await this.command('M300 S2000 P500')
       await this.command('M300 S0 P20')
-      throw new Error("Part not found 404")
+      throw new Error("Part Not Found 404")
     }
   }
 

@@ -2,10 +2,11 @@ const path = require('path')
 const chalk = require('chalk')
 const draftlog = require('draftlog').into(console)
 
+const Bot = require('./Bot')
 const Printer = require('./Printer')
 const PrinterWorker = require('./PrinterWorker')
 
-const timeout = ms => new Promise(res => setTimeout(res, ms))
+const sleep = ms => new Promise(res => setTimeout(res, ms))
 
 const PRINTER_5 = {
   debug: false,
@@ -14,8 +15,8 @@ const PRINTER_5 = {
   params: {
     temperatureExtruder: 205,
     temperatureBed: 50,
-    babyHeight: '0.7',
-    printOffset: 10
+    babyHeight: '0.55',
+    printOffset: 0
   }
 }
 
@@ -31,13 +32,67 @@ const PRINTER_JOHN = {
   }
 }
 
+const PRINTERS = [
+  PRINTER_5,
+  PRINTER_JOHN,
+]
+
 async function main() {
 
-  let printer5 = new Printer(PRINTER_5)
-  //
-  let printerWorker5 = new PrinterWorker(printer5, PRINTER_5)
-  await printerWorker5.start()
-  await printerWorker5.run()
+  // let printer5 = new Printer(PRINTER_5)
+  // //
+  // let printerWorker5 = new PrinterWorker(printer5, PRINTER_5)
+  // await printerWorker5.start()
+  // await printerWorker5.run()
+
+  let workersPromises = []
+  for (let printer of PRINTERS) {
+    workersPromises.push(launchWorker(printer))
+  }
+
+  await Promise.all(workersPromises)
+}
+
+async function launchWorker(opts) {
+  // Wait for connection
+  let printer = null
+  while(true) {
+    while (true) {
+      try {
+        await sleep(2000);
+        printer = new Printer(opts)
+        await printer.connect()
+        await printer.ready()
+        break
+      } catch (e) {
+        if (e.message.startsWith('Port not found')) {
+          continue
+        }
+        console.log(e)
+        throw e
+      }
+    }
+    while (true) {
+      try {
+        await printer.waitForButtonPress()
+        let printerWorker = new PrinterWorker(printer, opts)
+        await printerWorker.start()
+        await printerWorker.run()
+      } catch (e) {
+        if (e == 'Connection opening') {
+          console.log(chalk.bgRed.white(` ${opts.name} Disconnected. Re-start a porra toda `))
+          printerWorker.log('Disconnected')
+          Bot.run(opts.name, true)
+          while(1) {
+            await sleep(100000)
+          }
+          throw e
+        }
+        Bot.run(opts.name)
+        console.log(chalk.bgRed.white(` ${opts.name} Failed part. Waiting for human `))
+      }
+    }
+  }
 }
 
 ;(async () => {
@@ -51,7 +106,7 @@ async function main() {
   }
 })()
 
-process.on('unhandledRejection', (e) => {
+process.on('unhandledRejection', async (e) => {
   console.error('Unhandled Rejection')
   console.error(e.stack)
   process.exit(1)
