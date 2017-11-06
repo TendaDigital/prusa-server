@@ -20,6 +20,54 @@ const PRINTER_5 = {
   }
 }
 
+const PRINTER_4 = {
+  debug: false,
+  name: 'PRINTER 4',
+  port: {serialNumber: 'CZPX2617X003XK25033'},
+  params: {
+    temperatureExtruder: 205,
+    temperatureBed: 50,
+    babyHeight: '0.32',
+    printOffset: 0
+  }
+}
+const PRINTER_3 = { //is at home
+  debug: false,
+  name: 'PRINTER 3',
+  port: {serialNumber: 'CZPX2617X003XK250xx'},
+  params: {
+    temperatureExtruder: 205,
+    temperatureBed: 50,
+    babyHeight: '0.55',
+    printOffset: 0
+  }
+}
+
+const PRINTER_2 = {
+  debug: false,
+  name: 'PRINTER 2',
+  port: {serialNumber: 'CZPX2617X003XK25035'},
+  params: {
+    temperatureExtruder: 205,
+    temperatureBed: 50,
+    babyHeight: '0.55',
+    printOffset: 0
+  }
+}
+
+const PRINTER_1 = {
+  debug: false,
+  name: 'PRINTER 1',
+  port: {serialNumber: 'CZPX2617X003XK25026'},
+  params: {
+    temperatureExtruder: 205,
+    temperatureBed: 50,
+    babyHeight: '0.55',
+    printOffset: 0
+  }
+}
+
+
 const PRINTER_JOHN = {
   debug: false,
   name: 'PRINTER 6',
@@ -33,8 +81,11 @@ const PRINTER_JOHN = {
 }
 
 const PRINTERS = [
+  PRINTER_1,
+  PRINTER_2,
+  PRINTER_3,
+  PRINTER_4,
   PRINTER_5,
-  PRINTER_JOHN,
 ]
 
 async function main() {
