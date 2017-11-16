@@ -115,7 +115,9 @@ module.exports = class Printer {
   }
   
   async softwareHome(axis) {
-    let limit = 500
+    let homed = false
+    let limit = 2000
+    
     let AXIS = axis.toUpperCase()
     axis = axis.toLowerCase()
 
@@ -134,16 +136,24 @@ module.exports = class Printer {
     while(limit--) {
       await this.readSwitches()
       if (this.switch[axis]) {
+        homed = true
         break
       }
       this.command(`G92 ${AXIS}0.5 F3000`)
       this.command(`G1 ${AXIS}0`)
     }
 
+
     let offset = {X: -0.1, Y: -3, Z: 0}
     this.command(`G92 ${AXIS}${offset[AXIS]}`)
     this.command(`G1 ${AXIS}0`)
     this.command(`M300 S2000 P200`)
+    if (homed) {
+      console.log("Home Ok")
+    } else {
+      throw new Error("Homing failed on:", AXIS)
+    }
+
   }
 
   async checkPrint() {
