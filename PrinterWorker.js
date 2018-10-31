@@ -160,10 +160,7 @@ module.exports = class PrinterWorker {
     let partY = Math.floor(partNumber/maxColum)
     let partX = partNumber - (partY * maxColum)
 
-    console.log("Batch:", batch)
-    console.log("Part Number:", partNumber)
-    console.log("PARTX:",partX)
-    console.log("PARTY:",partY)
+ 
 
     if(partX <= maxColum){
       x = partX * spaceX

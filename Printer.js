@@ -161,7 +161,6 @@ module.exports = class Printer {
     if (this.switch.b){
       await this.display("Part Found 200 OK")
     }else {
-      Bot.run(this.options.name)
       await this.shutdown()
       await this.command('M300 S2000 P500')
       await this.command('M300 S0 P20')

@@ -146,7 +146,6 @@ async function getPorts() {
 }
 ;(async () => {
   try {
-    await getPorts()
     await main()
   } catch (e) {
     console.log()
